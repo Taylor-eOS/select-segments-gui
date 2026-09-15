@@ -1,10 +1,9 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox
+from tkinter import messagebox
 
 INPUT_FILE = "input.txt"
 OUTPUT_FILE = "output.txt"
 RESULT_FILE = "selected_titles.txt"
-MAX_INPUT_CHARS = 1200
 
 def read_segments(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -37,11 +36,6 @@ def load_data():
         candidates_per_segment.append(lines)
     return input_segments, candidates_per_segment
 
-def truncate_for_display(text, limit):
-    if len(text) <= limit:
-        return text
-    return text[:limit].rstrip() + " […]"
-
 class TitleSelectorApp:
     def __init__(self, root, input_segments, candidates_per_segment):
         self.root = root
@@ -68,9 +62,12 @@ class TitleSelectorApp:
         left_frame.pack_propagate(False)
         left_label = tk.Label(left_frame, text="Input segment", font=("TkDefaultFont", 10, "bold"))
         left_label.pack(anchor="w")
-        self.input_text = scrolledtext.ScrolledText(left_frame, wrap=tk.WORD, font=("TkDefaultFont", 11))
+        self.input_text = tk.Text(left_frame, wrap=tk.WORD, font=("TkDefaultFont", 11))
         self.input_text.pack(fill=tk.BOTH, expand=True)
         self.input_text.configure(state=tk.DISABLED)
+        self.input_text.bind("<MouseWheel>", self.on_input_mousewheel)
+        self.input_text.bind("<Button-4>", self.on_input_mousewheel)
+        self.input_text.bind("<Button-5>", self.on_input_mousewheel)
         right_frame = tk.Frame(main_frame)
         right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
         right_label = tk.Label(right_frame, text="Candidate titles", font=("TkDefaultFont", 10, "bold"))
@@ -93,6 +90,15 @@ class TitleSelectorApp:
         self.status_label = tk.Label(bottom_frame, text="", fg="gray")
         self.status_label.pack(side=tk.RIGHT, padx=(0, 20))
 
+    def on_input_mousewheel(self, event):
+        if event.num == 4:
+            self.input_text.yview_scroll(-3, "units")
+        elif event.num == 5:
+            self.input_text.yview_scroll(3, "units")
+        else:
+            self.input_text.yview_scroll(int(-1 * (event.delta / 120) * 3), "units")
+        return "break"
+
     def reset_result_file(self):
         open(RESULT_FILE, "w", encoding="utf-8").close()
 
@@ -103,10 +109,9 @@ class TitleSelectorApp:
     def show_segment(self, index):
         self.current_index = index
         input_text_full = self.input_segments[index]
-        display_text = truncate_for_display(input_text_full, MAX_INPUT_CHARS)
         self.input_text.configure(state=tk.NORMAL)
         self.input_text.delete("1.0", tk.END)
-        self.input_text.insert(tk.END, display_text)
+        self.input_text.insert(tk.END, input_text_full)
         self.input_text.configure(state=tk.DISABLED)
         self.clear_option_widgets()
         self.custom_entry.delete(0, tk.END)
